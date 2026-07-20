@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v1.0.1
+# v1.0.3
 
 using Markdown
 using InteractiveUtils
@@ -42,6 +42,9 @@ main {
 # pra gráficos estáticos (desativei pq troquei para o WGL por enquanto)
 #CairoMakie.activate!(type = "png")
 
+# ╔═╡ 6422bbfa-9a93-4e5e-b70d-54b7a5789799
+
+
 # ╔═╡ 6b12dcd6-0578-4c80-9443-d4165777566f
 # Função que representa a derivada
 function f(X, p)
@@ -74,25 +77,31 @@ Seja $x = ϕ$ e $y = ϕ'$:
 
 """
 
+# ╔═╡ d40527cc-d777-4539-85c7-56eaa9c0bf10
+#β=0.15
+
 # ╔═╡ 5876d6cd-62a2-4e28-b2d8-62028c04f70f
 md"## Parâmetros:"
 
 # ╔═╡ 73507fb2-bad1-4405-a3de-8dd85d2f7864
-md"β:  $(@bind β Slider(-5:1e-6:5; default=0.1, show_value=true))" 
+md"β:  $(@bind β Slider(-5:1e-2:5; default=2, show_value=true))" 
 
 # ╔═╡ 528749fe-5fec-44c7-8027-f6a3181d5d0e
-md"I:  $(@bind I Slider(0:1e-2:5; default=0.1, show_value=true)) # Corrente de polarização (A)" 
+md"I:  $(@bind I Slider(0:1e-2:5; default=2, show_value=true)) # Corrente de polarização (A)" 
 
 # ╔═╡ 7da5bff2-89cc-4ef3-8e29-fc23c67746ed
-md"Ic: $(@bind Ic Slider(0:1e-2:5; default=1.5, show_value=true)) # Corrente crítica (A)" 
+md"Ic: $(@bind Ic Slider(0:1e-2:5; default=2, show_value=true)) # Corrente crítica (A)" 
 
 # ╔═╡ 94683205-1bb0-4aaf-b433-d16d2dbad706
 I/Ic
 
+# ╔═╡ 12c225cf-c8e0-4144-822e-394249874fd8
+
+
 # ╔═╡ ec7e336a-d083-4389-8ef8-d09c37966447
 md"## Energia e Funções de Lyapunov
 ### Potencial de Washboard
-$$V(x, y) = \frac{1}{2}y^2 + \left[ -\cos(x) - \frac{I}{I_c}x \right]$$
+$$E(x, y) = \frac{1}{2}y^2 + \left[ -\cos(x) - \frac{I}{I_c}x \right]$$
 - [https://en.wikipedia.org/wiki/Phase_qubit](https://en.wikipedia.org/wiki/Phase_qubit)
 
 
@@ -146,10 +155,13 @@ md" $x = ϕ$ e $y = ϕ'$"
 md"x₀: $(@bind x₀ Slider(-5:1e-6:5; default=1e-3, show_value=true))" 
 
 # ╔═╡ 6af17eec-e8fc-4be1-954b-b17999823184
-md"y₀: $(@bind y₀ Slider(-5:1e-6:5; default=1e-6, show_value=true))" 
+md"y₀: $(@bind y₀ Slider(0:1e-6:5; default=0.2, show_value=true))" 
 
 # ╔═╡ dc851077-d371-4a0a-be6c-68791c8eab54
-md" $t_f$: $(@bind total_time Slider(0:1e-6:50; default=10, show_value=true)) # tempo final (s)" 
+#md" $t_f$: $(@bind total_time Slider(0:1e-6:50; default=10, show_value=true)) # tempo final (s)" 
+
+# ╔═╡ 45591833-00cc-4c7c-b75d-1f133fe60fa2
+total_time = 30
 
 # ╔═╡ 98db399f-06f1-43e0-b9f1-c872091573ed
 begin
@@ -178,9 +190,9 @@ begin
 end
 
 # ╔═╡ 9723b5c3-6115-4d9c-86c7-a28be7962818
-function plota_retrato_de_fase()
+function plota_retrato_de_fase(density=1)
     retrato_fase = (x, y) -> Point2f(f([x, y], p))
-    fig = streamplot(retrato_fase, (-4π,4π), (-3.0,3.0), colormap=[:black, :darkred, :red])
+    fig = streamplot(retrato_fase, (-3π,3π), (-3,3), colormap=[:black, :darkred, :red], density=density)
 
 	# Plota pontos fixos
     fp_x = [point[1] for point in pts_equilibrio]
@@ -188,21 +200,24 @@ function plota_retrato_de_fase()
 	
 	colors = [est ? "green" : "red" for est in estabilidade]
 	scatter!(fp_x, fp_y, color=colors, markersize = 15, marker = :circle)
-    fig
+    return fig
 end
 
 # ╔═╡ 19634c22-6a2f-4bc6-941f-831039e65668
 plota_retrato_de_fase()
 
+
 # ╔═╡ c3d2729f-2e2c-434e-8476-f323c49f52cf
 begin
 
     # cria malha
-    x = -4pi:0.1:4pi
+    x = -2pi:0.1:2pi
+    
     y = -3.0:0.1:3.0
     
     # Energia total do sistema
     E(x, y) = 0.5 * y^2 - cos(x) - I/Ic * x
+    
     
     # Avaliando a função na malha
     E_superf = [E(xi, yi) for xi in x, yi in y]
@@ -211,8 +226,8 @@ begin
     fig_lyap = Figure(size = (800, 600))
     ax_lyap = Axis3(fig_lyap[1, 1], 
         title = "Superfície de Energia e Curvas de Nível (I/Ic = $(I/Ic))",
-        xlabel = "x (Fase)", 
-        ylabel = "y (Velocidade)", 
+        xlabel = "ϕ", 
+        ylabel = "ϕ'", 
         zlabel = "Energia E(x,y)"
     )
     
@@ -221,7 +236,7 @@ begin
     
     # Projeção das curvas de nível na base (ajustando a transformação em Z)
     min_E = minimum(E_superf)
-    contour!(ax_lyap, x, y, E_superf, levels = 25, colormap = :viridis, linewidth=2)
+    contour!(ax_lyap, x, y, E_superf, levels = 20, colormap = :viridis, linewidth=2)
     #transformation = (:xy, min_E - 1.0))
     # Plota pontos fixos
     fp_x = [point[1] for point in pts_equilibrio]
@@ -230,6 +245,14 @@ begin
 	scatter!(fp_x, fp_y, color=colors, markersize = 15, marker = :circle)
     
     fig_lyap
+end
+
+# ╔═╡ 3b541b01-9f0c-45e0-ad7f-2f605defe0a9
+begin
+	# Plota retrato de fase com as curvas de nível no fundo
+	fig_rf = plota_retrato_de_fase(1)
+	contour!(fig_rf.axis, x, y, E_superf, levels = 10, colormap = [:green], linewidth=1.5)
+	fig_rf
 end
 
 # ╔═╡ 73613e26-6602-4d4f-b7b2-fcc4db957043
@@ -254,6 +277,9 @@ begin
 	fig[1,2] = Legend(fig, ax)
 	fig
 end
+
+# ╔═╡ 68454c6d-2617-49fd-aaa7-6c3c592d8183
+
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
@@ -3327,34 +3353,40 @@ version = "4.1.0+0"
 """
 
 # ╔═╡ Cell order:
-# ╟─2bf03858-e1d7-42ea-be98-1b7c34797d29
+# ╠═2bf03858-e1d7-42ea-be98-1b7c34797d29
 # ╟─5e55d7d1-acc6-4676-9a50-a6aa4360ba8b
-# ╟─d7af3255-6a41-42aa-ac08-693417d09a09
-# ╟─2820394f-485b-4f04-9b0a-78db833960e5
-# ╟─8a618ae8-c68b-41d0-af1e-dfea711f7b30
-# ╟─9723b5c3-6115-4d9c-86c7-a28be7962818
-# ╟─6b12dcd6-0578-4c80-9443-d4165777566f
+# ╠═d7af3255-6a41-42aa-ac08-693417d09a09
+# ╠═2820394f-485b-4f04-9b0a-78db833960e5
+# ╠═8a618ae8-c68b-41d0-af1e-dfea711f7b30
+# ╠═9723b5c3-6115-4d9c-86c7-a28be7962818
+# ╠═6422bbfa-9a93-4e5e-b70d-54b7a5789799
+# ╠═6b12dcd6-0578-4c80-9443-d4165777566f
 # ╟─46f0828e-77a4-11f1-abc7-c911b8cdfabd
 # ╟─5b0bc9da-8262-4506-a5d4-ec748429c09e
 # ╟─87e16e72-bbfe-412f-bb3f-84284e9792ef
+# ╟─d40527cc-d777-4539-85c7-56eaa9c0bf10
 # ╟─5876d6cd-62a2-4e28-b2d8-62028c04f70f
-# ╠═73507fb2-bad1-4405-a3de-8dd85d2f7864
-# ╠═528749fe-5fec-44c7-8027-f6a3181d5d0e
+# ╟─73507fb2-bad1-4405-a3de-8dd85d2f7864
+# ╟─528749fe-5fec-44c7-8027-f6a3181d5d0e
 # ╟─7da5bff2-89cc-4ef3-8e29-fc23c67746ed
 # ╠═94683205-1bb0-4aaf-b433-d16d2dbad706
 # ╠═19634c22-6a2f-4bc6-941f-831039e65668
+# ╟─12c225cf-c8e0-4144-822e-394249874fd8
 # ╟─ec7e336a-d083-4389-8ef8-d09c37966447
-# ╠═c3d2729f-2e2c-434e-8476-f323c49f52cf
+# ╟─c3d2729f-2e2c-434e-8476-f323c49f52cf
+# ╟─3b541b01-9f0c-45e0-ad7f-2f605defe0a9
 # ╠═af5ca34d-bcca-4458-9d4f-32eef577b48c
 # ╟─9f985262-84ca-4f77-bd0d-50b7a6552bc8
-# ╠═f1550d07-54cc-47e4-87d1-4ee83e5c4ed1
+# ╟─f1550d07-54cc-47e4-87d1-4ee83e5c4ed1
 # ╟─3bc84024-8dce-4e91-a9af-fc601a70fc02
 # ╟─3ecdbc01-e87e-4a6e-b4d9-32386485f723
 # ╟─29a49483-9618-4fe2-825c-a93f6fb245f2
-# ╟─6af17eec-e8fc-4be1-954b-b17999823184
+# ╠═6af17eec-e8fc-4be1-954b-b17999823184
 # ╟─dc851077-d371-4a0a-be6c-68791c8eab54
-# ╟─98db399f-06f1-43e0-b9f1-c872091573ed
-# ╟─6a515985-dd71-4ae6-8152-3b925fe7b081
-# ╟─73613e26-6602-4d4f-b7b2-fcc4db957043
+# ╠═45591833-00cc-4c7c-b75d-1f133fe60fa2
+# ╠═98db399f-06f1-43e0-b9f1-c872091573ed
+# ╠═6a515985-dd71-4ae6-8152-3b925fe7b081
+# ╠═73613e26-6602-4d4f-b7b2-fcc4db957043
+# ╠═68454c6d-2617-49fd-aaa7-6c3c592d8183
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
